@@ -2,6 +2,7 @@
 //変数を初期化
 $name = '';
 $comment = '';
+$comment = '';
 $db_connect = false;//初期値
 $data_exists = false;//初期値
 $sql = null;//初期値
@@ -25,9 +26,12 @@ try{
 
 //データが入力されDBが接続されていた場合にデータを追加
 if ($db_connect && $data_exists) {
-    $sql = $pdo->prepare('insert into post(name,comment)values("?","?")');
-    //postデータベースより、以下のクエリを実行
-    if ($sql->execute([$name,$comment])){
+    $sql = $pdo -> prepare("INSERT INTO post (name, comment) VALUES (:name, :comment)");
+    $sql->bindParam(':name', $name, PDO::PARAM_STR);
+    $stmt->bindValue(':comment', $comment, PDO::PARAM_STR);
+
+    $name = '';
+    if ($sql->execute();){
         echo 'データを追加しました';
     }
         else {
@@ -66,13 +70,19 @@ if ($db_connect && $data_exists) {
                 コメント
             </th>
         </tr>
-        <?php foreach($pdo->query('select * from post') as $row):?>
-        <tr>
-            <td><?php echo $row['name']; ?></td>
-            <td><?php echo $row['comment']; ?></td>
-            <td><?php echo $row['create_at']; ?></td>
-        </tr>
-        <?php endforeach; ?>
+        <?php
+        $sql = $pdo->query("SELECT * FROM post ORDER BY no ASC");
+        while($row = $sql -> fetch(PDO::FETCH_ASSOC)) {
+        $name = $row["name"];
+        $comment = $row["comment"];
+        $create_at = $row["create_at"];
+echo<<<EOF
+
+ヒアドキュメント内の表示部分
+
+EOF;
+}
+?>
         </table>
     </body>
 </html>
