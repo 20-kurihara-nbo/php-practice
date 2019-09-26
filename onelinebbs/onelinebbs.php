@@ -1,46 +1,42 @@
 <?php
-$link = mysqli_connect('localhost','root','','oneline_bbs');
-if(!$link){
-    die('データベースに接続できません:'.mysqli_error());
+//変数を初期化
+$name = '';
+$comment = '';
+$db_connect = false;//初期値
+$data_exists = false;//初期値
+$sql = null;//初期値
+
+//data_existsがtrueになる条件
+if (!empty($_POST['name']) && !empty($_POST['comment'])) {
+    $name = $_POST['name'];
+    $comment = $_POST['comment'];
+    $data_exists = true;
 }
 
-mysqli_select_db($link,'oneline_bbs');
-
-$errors = array();
-
-if($_SERVER['REQUEST_METHOD']=== 'POST'){
-    $name = null;
-    if (!isset($_POST['name'])||!strlen($_POST['name'])) {
-        $errors['name'] = '名前を入力してください';
-    }else if (strlen($_POST['name'])>40) {
-        $errors['name'] = '名前は４０文字以内で入力してください';
-    }else {
-        $name = $_POST['name'];
-    }
+//db_connectがtrueになる条件と接続確認
+try{
+    $pdo = new PDO('mysql:dbneme=oneline_bbs;host=localhost;charaset=utf8','root','');
+    $db_connect = true;
+    echo '接続に成功しました';
     
-    $comment = null;
-    if(!isset($_POST['comment']) || !strlen($_POST['comment'])){
-        $errors['comment'] = 'ひと言を入力してください';
-    } else if (strlen($_POST['comment']) > 200) {
-        $errors['comment'] = 'ひと言は２００文字以内で入力してください';
-    } else {
-        $comment = $_POST['comment'];
+    } catch ( PDOException $e) {
+        print "接続エラー:{$e->getmessage()}";
     }
-    
-    if (count($errors) === 0) {
-        
-        $sql = "INSERT INTO `post`(`name`,`comment`,`created_at`)VALUES('"
-            .mysqli_real_escape_string($name)."','"
-            .mysqli_real_escape_string($comment)."','"
-            .date('Y-m-d H:i:s') . "')";
-            
-        mysqli_query($link,$sql);
-        
-        mysqli_close($link);
-        
-        header('Location: http://' .$_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
+
+//データが入力されDBが接続されていた場合にデータを追加
+if ($db_connect && $data_exists) {
+    $sql = $pdo->prepare('insert into post(name,comment)values("?","?")');
+    //postデータベースより、以下のクエリを実行
+    if ($sql->execute([$name,$comment])){
+        echo 'データを追加しました';
+    }
+        else {
+         echo 'データを追加できませんでした';
     }
 }
+    else {
+        echo 'POSTデータが存在しません';
+    }
 
 ?>
 
@@ -54,43 +50,29 @@ if($_SERVER['REQUEST_METHOD']=== 'POST'){
     <body>
         <h1>ひとこと掲示板</h1>
         
-        <form action="onelinebbs.php" method="post">
-            <?php if (count($errors)): ?>
-            <ul class="error_list">
-                <?php foreach ($errors as $error): ?>
-                <li>
-                    <?php echo htmlspecialchars($error,ENT_QUOTES,'UTF-8') ?>
-                </li>
-                <?php endforeach; ?>
-            </ul>
-            <?php endif; ?>
-            
+        <form action="" method="post">
             名前：<input type="text" name="name"/><br />
             ひと言:<input type="text" name="comment" size="60" /><br />
             <input type="submit" name="submit" value="送信"/>
         </form>
         
-        <?php
-        $sql = "SELECT * FROM `post` ORDER BY 'created_at` DESC";
-        $result = mysqli_query($link,$sql);
-        ?>
-        
-        <?php if ($result !== false && mysqli_num_rows($result)): ?>
-        <ul>
-            <?php while($post = mysqli_fetch_assoc($result)): ?>
-            <li>
-                <?php echo htmlspecialchars($post['name'],ENT_QUOTES,'UTF-8'); ?>:
-                <?php echo htmlspecialchars($post['comment'],ENT_QUOTES,'UTF-8'); ?>
-                -  <?php echo htmlspecialchars($post['created_at'],ENT_QUOTES,'UTF-8'); ?>
-            </li>
-            <?php endwhile; ?>
-        </ul>
-        <?php endif; ?>
-        
-        <?php
-        mysqli_free_result($result);
-        mysqli_close($link);
-        ?>
-        
+       <h2>投稿されたデータ一覧</h2>
+        <table style="border: 1px solid #000;">
+        <tr>
+            <th>
+                投稿者
+            </th>
+            <th>
+                コメント
+            </th>
+        </tr>
+        <?php foreach($pdo->query('select * from post') as $row):?>
+        <tr>
+            <td><?php echo $row['name']; ?></td>
+            <td><?php echo $row['comment']; ?></td>
+            <td><?php echo $row['create_at']; ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </table>
     </body>
 </html>
